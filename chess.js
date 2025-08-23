@@ -193,10 +193,17 @@ class ChessGame {
         const piece = this.board[row][col];
         if (!piece || piece.color !== this.currentPlayer) return [];
 
-        const moves = this.getPossibleMoves(row, col);
-        return moves.filter(([moveRow, moveCol]) => {
-            return !this.wouldBeInCheck(piece.color, row, col, moveRow, moveCol);
+        const possibleMoves = this.getPossibleMoves(row, col);
+        const validMoves = possibleMoves.filter(([moveRow, moveCol]) => {
+            const wouldBeInCheck = this.wouldBeInCheck(piece.color, row, col, moveRow, moveCol);
+            if (piece.type === 'king') {
+                console.log(`King move ${row},${col} -> ${moveRow},${moveCol}: ${wouldBeInCheck ? 'INVALID' : 'VALID'}`);
+            }
+            return !wouldBeInCheck;
         });
+
+        console.log(`Piece ${piece.type} at ${row},${col}: ${possibleMoves.length} possible, ${validMoves.length} valid moves`);
+        return validMoves;
     }
 
     getPossibleMoves(row, col) {
@@ -381,19 +388,26 @@ class ChessGame {
 
     wouldBeInCheck(color, fromRow, fromCol, toRow, toCol) {
         if (!this.board[fromRow] || !this.board[fromRow][fromCol]) return true;
+        if (!this.isValidPosition(toRow, toCol)) return true;
         
-        const originalPiece = this.board[toRow][toCol];
+        const originalDestination = this.board[toRow][toCol];
         const movingPiece = this.board[fromRow][fromCol];
 
         this.board[toRow][toCol] = movingPiece;
         this.board[fromRow][fromCol] = null;
 
-        const inCheck = this.isInCheck(color);
+        let wouldBeInCheck = false;
+        try {
+            wouldBeInCheck = this.isInCheck(color);
+        } catch (error) {
+            console.error('Error checking if would be in check:', error);
+            wouldBeInCheck = true;
+        }
 
         this.board[fromRow][fromCol] = movingPiece;
-        this.board[toRow][toCol] = originalPiece;
+        this.board[toRow][toCol] = originalDestination;
 
-        return inCheck;
+        return wouldBeInCheck;
     }
 
     isInCheck(color) {
