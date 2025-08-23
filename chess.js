@@ -404,14 +404,15 @@ class ChessGame {
     }
 
     isSquareUnderAttack(row, col, attackingColor) {
+        if (!this.isValidPosition(row, col)) return false;
+        
         try {
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
                     const piece = this.board[r][c];
                     if (piece && piece.color === attackingColor) {
                         try {
-                            const moves = this.getPossibleMoves(r, c);
-                            if (moves.some(([moveRow, moveCol]) => moveRow === row && moveCol === col)) {
+                            if (this.canPieceAttackSquare(piece, r, c, row, col)) {
                                 return true;
                             }
                         } catch (error) {
@@ -425,6 +426,64 @@ class ChessGame {
             console.error('Error in isSquareUnderAttack:', error);
         }
         return false;
+    }
+
+    canPieceAttackSquare(piece, fromRow, fromCol, toRow, toCol) {
+        const rowDiff = toRow - fromRow;
+        const colDiff = toCol - fromCol;
+        const absRowDiff = Math.abs(rowDiff);
+        const absColDiff = Math.abs(colDiff);
+
+        switch (piece.type) {
+            case 'pawn':
+                const direction = piece.color === 'white' ? -1 : 1;
+                return rowDiff === direction && absColDiff === 1;
+                
+            case 'rook':
+                if (rowDiff === 0 || colDiff === 0) {
+                    return this.isPathClear(fromRow, fromCol, toRow, toCol);
+                }
+                return false;
+                
+            case 'bishop':
+                if (absRowDiff === absColDiff) {
+                    return this.isPathClear(fromRow, fromCol, toRow, toCol);
+                }
+                return false;
+                
+            case 'queen':
+                if (rowDiff === 0 || colDiff === 0 || absRowDiff === absColDiff) {
+                    return this.isPathClear(fromRow, fromCol, toRow, toCol);
+                }
+                return false;
+                
+            case 'king':
+                return absRowDiff <= 1 && absColDiff <= 1;
+                
+            case 'knight':
+                return (absRowDiff === 2 && absColDiff === 1) || (absRowDiff === 1 && absColDiff === 2);
+                
+            default:
+                return false;
+        }
+    }
+
+    isPathClear(fromRow, fromCol, toRow, toCol) {
+        const rowStep = toRow > fromRow ? 1 : toRow < fromRow ? -1 : 0;
+        const colStep = toCol > fromCol ? 1 : toCol < fromCol ? -1 : 0;
+        
+        let currentRow = fromRow + rowStep;
+        let currentCol = fromCol + colStep;
+        
+        while (currentRow !== toRow || currentCol !== toCol) {
+            if (this.board[currentRow][currentCol] !== null) {
+                return false;
+            }
+            currentRow += rowStep;
+            currentCol += colStep;
+        }
+        
+        return true;
     }
 
     findKing(color) {
@@ -502,9 +561,12 @@ class ChessGame {
         const activePlayer = document.querySelector(`.player-${this.currentPlayer}`);
         if (activePlayer) activePlayer.classList.add('active');
 
+        const availableMoves = this.getAllValidMoves(this.currentPlayer);
+        console.log(`${this.currentPlayer} has ${availableMoves.length} valid moves`);
+
         switch (this.gameState) {
             case 'check':
-                stateElement.textContent = 'Check!';
+                stateElement.textContent = `Check! (${availableMoves.length} moves available)`;
                 stateElement.style.color = '#ef4444';
                 break;
             case 'checkmate':
