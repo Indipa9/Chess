@@ -195,7 +195,7 @@ class ChessGame {
 
         const moves = this.getPossibleMoves(row, col);
         return moves.filter(([moveRow, moveCol]) => {
-            return !this.wouldBeInCheck(row, col, moveRow, moveCol);
+            return !this.wouldBeInCheck(piece.color, row, col, moveRow, moveCol);
         });
     }
 
@@ -379,14 +379,16 @@ class ChessGame {
         }
     }
 
-    wouldBeInCheck(fromRow, fromCol, toRow, toCol) {
+    wouldBeInCheck(color, fromRow, fromCol, toRow, toCol) {
+        if (!this.board[fromRow] || !this.board[fromRow][fromCol]) return true;
+        
         const originalPiece = this.board[toRow][toCol];
         const movingPiece = this.board[fromRow][fromCol];
 
         this.board[toRow][toCol] = movingPiece;
         this.board[fromRow][fromCol] = null;
 
-        const inCheck = this.isInCheck(movingPiece.color);
+        const inCheck = this.isInCheck(color);
 
         this.board[fromRow][fromCol] = movingPiece;
         this.board[toRow][toCol] = originalPiece;
