@@ -463,13 +463,22 @@ class ChessGame {
 
     getAllValidMoves(color) {
         const moves = [];
-        for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-                const piece = this.board[row][col];
-                if (piece && piece.color === color) {
-                    moves.push(...this.getValidMoves(row, col));
+        try {
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const piece = this.board[row][col];
+                    if (piece && piece.color === color) {
+                        try {
+                            const validMoves = this.getValidMoves(row, col);
+                            moves.push(...validMoves);
+                        } catch (error) {
+                            console.error(`Error getting valid moves for ${row},${col}:`, error);
+                        }
+                    }
                 }
             }
+        } catch (error) {
+            console.error('Error in getAllValidMoves:', error);
         }
         return moves;
     }
