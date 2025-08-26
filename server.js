@@ -250,8 +250,11 @@ wss.on('connection', (ws) => {
     });
 });
 
-const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0'; // Important for Railway
+
+server.listen(PORT, HOST, () => {
     console.log(`Chess server running on port ${PORT}`);
-    console.log(`Open your browser to http://localhost:${PORT} to play!`);
+    console.log(`Server bound to ${HOST}:${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
