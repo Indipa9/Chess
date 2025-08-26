@@ -16,12 +16,31 @@
                 <select id="game-mode" class="game-mode-select">
                     <option value="human-vs-human">Human vs Human</option>
                     <option value="human-vs-computer">Human vs Computer</option>
+                    <option value="online-multiplayer">Online Multiplayer</option>
                 </select>
                 <select id="ai-difficulty" class="ai-difficulty-select" style="display: none;">
                     <option value="easy">Easy</option>
                     <option value="medium">Medium</option>
                     <option value="hard">Hard</option>
                 </select>
+                
+                <!-- Online Multiplayer Controls -->
+                <div id="online-controls" class="online-controls" style="display: none;">
+                    <div class="online-section">
+                        <input type="text" id="player-name" class="player-name-input" placeholder="Your name" maxlength="20">
+                        <button id="create-room" class="btn btn-success">
+                            <i class="fas fa-plus"></i> Create Room
+                        </button>
+                        <div class="join-room-container">
+                            <input type="text" id="room-id-input" class="room-id-input" placeholder="Room ID" maxlength="6">
+                            <button id="join-room" class="btn btn-info">
+                                <i class="fas fa-sign-in-alt"></i> Join Room
+                            </button>
+                        </div>
+                    </div>
+                    <div id="room-status" class="room-status"></div>
+                    <div id="connection-status" class="connection-status">Disconnected</div>
+                </div>
                 <button id="new-game" class="btn btn-primary">
                     <i class="fas fa-plus"></i> New Game
                 </button>
@@ -38,10 +57,10 @@
             <div class="game-info">
                 <div class="player-info player-white">
                     <div class="player-avatar">
-                        <i class="fas fa-user"></i>
+                        <i class="fas fa-user" id="white-player-icon"></i>
                     </div>
                     <div class="player-details">
-                        <h3>White Player</h3>
+                        <h3 id="white-player-name">White Player</h3>
                         <div class="captured-pieces" id="captured-black"></div>
                     </div>
                 </div>

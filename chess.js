@@ -11,6 +11,15 @@ class ChessGame {
         this.aiDifficulty = 'medium';
         this.isAiThinking = false;
         
+        // Online multiplayer properties
+        this.ws = null;
+        this.isOnline = false;
+        this.playerColor = null;
+        this.roomId = null;
+        this.isMyTurn = false;
+        this.opponentName = 'Opponent';
+        this.playerName = 'You';
+        
         this.pieceSymbols = {
             white: {
                 king: '♔', queen: '♕', rook: '♖',
@@ -30,6 +39,177 @@ class ChessGame {
         this.initializeEventListeners();
         this.renderBoard();
         this.updateGameInfo();
+        this.initializeOnlineControls();
+    }
+
+    initializeOnlineControls() {
+        // Add event listeners for online controls
+        document.getElementById('create-room').addEventListener('click', () => this.createRoom());
+        document.getElementById('join-room').addEventListener('click', () => this.joinRoom());
+        document.getElementById('room-id-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.joinRoom();
+        });
+    }
+
+    connectToServer() {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            return;
+        }
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}`;
+        
+        try {
+            this.ws = new WebSocket(wsUrl);
+            
+            this.ws.onopen = () => {
+                console.log('Connected to server');
+                this.updateConnectionStatus('Connected');
+            };
+
+            this.ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                this.handleServerMessage(data);
+            };
+
+            this.ws.onclose = () => {
+                console.log('Disconnected from server');
+                this.updateConnectionStatus('Disconnected');
+                this.isOnline = false;
+                this.playerColor = null;
+                this.roomId = null;
+            };
+
+            this.ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                this.updateConnectionStatus('Connection Error');
+            };
+        } catch (error) {
+            console.error('Failed to connect to server:', error);
+            this.updateConnectionStatus('Connection Failed');
+        }
+    }
+
+    disconnectFromServer() {
+        if (this.ws) {
+            this.ws.close();
+            this.ws = null;
+        }
+        this.isOnline = false;
+        this.playerColor = null;
+        this.roomId = null;
+        this.updateConnectionStatus('Disconnected');
+        this.updateRoomStatus('');
+    }
+
+    handleServerMessage(data) {
+        switch (data.type) {
+            case 'room-created':
+                this.roomId = data.roomId;
+                this.updateRoomStatus(`Room created: ${data.roomId}. Share this ID with your opponent.`);
+                break;
+
+            case 'room-joined':
+                this.roomId = data.roomId;
+                this.updateRoomStatus(`Joined room: ${data.roomId}`);
+                break;
+
+            case 'player-assigned':
+                this.playerColor = data.color;
+                this.isOnline = true;
+                this.isMyTurn = data.color === 'white';
+                this.playerName = data.playerName;
+                this.updateRoomStatus(`You are playing as ${data.color}`);
+                this.updatePlayerNames();
+                break;
+
+            case 'room-status':
+                if (data.canStart) {
+                    this.updateRoomStatus('Game ready! Both players connected.');
+                    if (data.players.length === 2) {
+                        const opponent = data.players.find(p => p.color !== this.playerColor);
+                        if (opponent) {
+                            this.opponentName = opponent.name;
+                            this.updatePlayerNames();
+                        }
+                    }
+                } else {
+                    this.updateRoomStatus('Waiting for opponent...');
+                }
+                break;
+
+            case 'move':
+                this.receiveOpponentMove(data);
+                break;
+
+            case 'new-game':
+                this.receiveNewGameRequest(data);
+                break;
+
+            case 'game-state':
+                this.receiveGameState(data);
+                break;
+
+            case 'player-disconnected':
+                this.updateRoomStatus('Opponent disconnected');
+                break;
+
+            case 'room-not-found':
+                this.updateRoomStatus('Room not found. Check the room ID.');
+                break;
+
+            case 'room-full':
+                this.updateRoomStatus('Room is full');
+                break;
+        }
+    }
+
+    createRoom() {
+        const playerName = document.getElementById('player-name').value.trim() || 'Player 1';
+        
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'create-room',
+                playerName: playerName
+            }));
+        } else {
+            this.updateRoomStatus('Not connected to server');
+        }
+    }
+
+    joinRoom() {
+        const roomId = document.getElementById('room-id-input').value.trim().toUpperCase();
+        const playerName = document.getElementById('player-name').value.trim() || 'Player 2';
+        
+        if (!roomId) {
+            this.updateRoomStatus('Please enter a room ID');
+            return;
+        }
+
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'join-room',
+                roomId: roomId,
+                playerName: playerName
+            }));
+        } else {
+            this.updateRoomStatus('Not connected to server');
+        }
+    }
+
+    updateConnectionStatus(status) {
+        const statusElement = document.getElementById('connection-status');
+        if (statusElement) {
+            statusElement.textContent = status;
+            statusElement.className = `connection-status ${status.toLowerCase().replace(/\s/g, '-')}`;
+        }
+    }
+
+    updateRoomStatus(message) {
+        const statusElement = document.getElementById('room-status');
+        if (statusElement) {
+            statusElement.textContent = message;
+        }
     }
 
     initializeBoard() {
@@ -57,12 +237,21 @@ class ChessGame {
         
         gameModeSelect.addEventListener('change', (e) => {
             this.gameMode = e.target.value;
+            
             if (this.gameMode === 'human-vs-computer') {
                 aiDifficultySelect.style.display = 'block';
+                document.getElementById('online-controls').style.display = 'none';
+                this.disconnectFromServer();
                 this.aiColor = 'black';
                 this.updatePlayerNames();
+            } else if (this.gameMode === 'online-multiplayer') {
+                aiDifficultySelect.style.display = 'none';
+                document.getElementById('online-controls').style.display = 'block';
+                this.connectToServer();
             } else {
                 aiDifficultySelect.style.display = 'none';
+                document.getElementById('online-controls').style.display = 'none';
+                this.disconnectFromServer();
                 this.updatePlayerNames();
             }
         });
@@ -113,7 +302,19 @@ class ChessGame {
 
     handleSquareClick(row, col) {
         if (this.gameState !== 'playing' || this.isAiThinking) return;
-        if (this.gameMode === 'human-vs-computer' && this.currentPlayer === this.aiColor) return;
+        
+        // Check if it's an online game and if it's the player's turn
+        if (this.isOnline) {
+            if (!this.isMyTurn) {
+                this.updateRoomStatus("It's not your turn!");
+                return;
+            }
+            if (this.currentPlayer !== this.playerColor) {
+                return;
+            }
+        } else if (this.gameMode === 'human-vs-computer' && this.currentPlayer === this.aiColor) {
+            return;
+        }
 
         const piece = this.board[row][col];
         
@@ -374,15 +575,55 @@ class ChessGame {
 
         this.moveHistory.push(moveData);
         this.currentPlayer = this.getOpponent(this.currentPlayer);
+        
+        // Send move to opponent if online
+        if (this.isOnline && this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'move',
+                ...moveData
+            }));
+            this.isMyTurn = false;
+        }
+
         this.updateGameState();
         this.renderBoard();
         this.updateGameInfo();
         this.updateMoveHistory();
 
-        if (this.gameMode === 'human-vs-computer' && 
+        // Handle AI move for local computer games
+        if (!this.isOnline && 
+            this.gameMode === 'human-vs-computer' && 
             this.currentPlayer === this.aiColor && 
             this.gameState === 'playing') {
             setTimeout(() => this.makeAiMove(), 500);
+        }
+    }
+
+    receiveOpponentMove(moveData) {
+        // Apply the opponent's move
+        this.board[moveData.to.row][moveData.to.col] = moveData.piece;
+        this.board[moveData.from.row][moveData.from.col] = null;
+
+        this.moveHistory.push(moveData);
+        this.currentPlayer = this.getOpponent(this.currentPlayer);
+        this.isMyTurn = this.currentPlayer === this.playerColor;
+
+        this.updateGameState();
+        this.renderBoard();
+        this.updateGameInfo();
+        this.updateMoveHistory();
+    }
+
+    receiveNewGameRequest(data) {
+        // Reset the game when opponent starts a new game
+        this.newGameInternal();
+    }
+
+    receiveGameState(data) {
+        // Handle game state updates from opponent
+        if (data.gameState) {
+            this.gameState = data.gameState;
+            this.updateGameInfo();
         }
     }
 
@@ -567,7 +808,13 @@ class ChessGame {
         const text = turnElement.querySelector('.turn-text');
 
         indicator.className = `turn-indicator ${this.currentPlayer}-turn`;
-        text.textContent = `${this.currentPlayer === 'white' ? 'White' : 'Black'} to move`;
+        
+        if (this.isOnline) {
+            const turnText = this.isMyTurn ? 'Your turn' : "Opponent's turn";
+            text.textContent = `${this.currentPlayer === 'white' ? 'White' : 'Black'} - ${turnText}`;
+        } else {
+            text.textContent = `${this.currentPlayer === 'white' ? 'White' : 'Black'} to move`;
+        }
 
         const playerInfos = document.querySelectorAll('.player-info');
         playerInfos.forEach(info => info.classList.remove('active'));
@@ -686,6 +933,17 @@ class ChessGame {
     }
 
     newGame() {
+        // Send new game request if online
+        if (this.isOnline && this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'new-game'
+            }));
+        }
+        
+        this.newGameInternal();
+    }
+
+    newGameInternal() {
         this.board = this.initializeBoard();
         this.currentPlayer = 'white';
         this.selectedSquare = null;
@@ -693,8 +951,14 @@ class ChessGame {
         this.gameState = 'playing';
         this.isAiThinking = false;
         
-        this.gameMode = document.getElementById('game-mode').value;
-        this.aiDifficulty = document.getElementById('ai-difficulty').value;
+        if (!this.isOnline) {
+            this.gameMode = document.getElementById('game-mode').value;
+            this.aiDifficulty = document.getElementById('ai-difficulty').value;
+        }
+        
+        if (this.isOnline) {
+            this.isMyTurn = this.playerColor === 'white';
+        }
         
         this.updatePlayerNames();
         this.renderBoard();
@@ -705,6 +969,7 @@ class ChessGame {
 
     undoMove() {
         if (this.moveHistory.length === 0) return;
+        if (this.isOnline) return; // Disable undo in online games
 
         this.moveHistory.pop();
         if (this.gameMode === 'human-vs-computer' && this.moveHistory.length > 0) {
@@ -743,15 +1008,35 @@ class ChessGame {
     }
 
     updatePlayerNames() {
+        const whitePlayerName = document.getElementById('white-player-name') || 
+                               document.querySelector('.player-white .player-details h3');
         const blackPlayerName = document.getElementById('black-player-name');
         const blackPlayerIcon = document.getElementById('black-player-icon');
+        const whitePlayerIcon = document.querySelector('.player-white .player-avatar i');
         
-        if (this.gameMode === 'human-vs-computer') {
-            blackPlayerName.textContent = `Computer (${this.aiDifficulty})`;
-            blackPlayerIcon.className = 'fas fa-robot';
+        if (this.isOnline) {
+            // Online multiplayer mode
+            if (this.playerColor === 'white') {
+                if (whitePlayerName) whitePlayerName.textContent = `${this.playerName} (You)`;
+                if (blackPlayerName) blackPlayerName.textContent = `${this.opponentName}`;
+            } else if (this.playerColor === 'black') {
+                if (whitePlayerName) whitePlayerName.textContent = `${this.opponentName}`;
+                if (blackPlayerName) blackPlayerName.textContent = `${this.playerName} (You)`;
+            }
+            if (whitePlayerIcon) whitePlayerIcon.className = 'fas fa-user';
+            if (blackPlayerIcon) blackPlayerIcon.className = 'fas fa-user';
+        } else if (this.gameMode === 'human-vs-computer') {
+            // AI mode
+            if (whitePlayerName) whitePlayerName.textContent = 'White Player';
+            if (blackPlayerName) blackPlayerName.textContent = `Computer (${this.aiDifficulty})`;
+            if (whitePlayerIcon) whitePlayerIcon.className = 'fas fa-user';
+            if (blackPlayerIcon) blackPlayerIcon.className = 'fas fa-robot';
         } else {
-            blackPlayerName.textContent = 'Black Player';
-            blackPlayerIcon.className = 'fas fa-user';
+            // Local human vs human
+            if (whitePlayerName) whitePlayerName.textContent = 'White Player';
+            if (blackPlayerName) blackPlayerName.textContent = 'Black Player';
+            if (whitePlayerIcon) whitePlayerIcon.className = 'fas fa-user';
+            if (blackPlayerIcon) blackPlayerIcon.className = 'fas fa-user';
         }
     }
 

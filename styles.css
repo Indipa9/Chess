@@ -623,3 +623,150 @@ body {
     font-size: 12px;
     color: #4a5568;
 }
+
+/* Online Multiplayer Styles */
+.online-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 12px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    min-width: 300px;
+}
+
+.online-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.player-name-input, .room-id-input {
+    padding: 12px 16px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 500;
+    color: #2d3748;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.player-name-input:focus, .room-id-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.join-room-container {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.join-room-container .room-id-input {
+    flex: 1;
+    margin: 0;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #48bb78, #38a169);
+    border: none;
+    color: white;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #38a169, #2f855a);
+    transform: translateY(-1px);
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #4299e1, #3182ce);
+    border: none;
+    color: white;
+}
+
+.btn-info:hover {
+    background: linear-gradient(135deg, #3182ce, #2c5aa0);
+    transform: translateY(-1px);
+}
+
+.room-status {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #2d3748;
+    text-align: center;
+    border-left: 4px solid #4299e1;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.connection-status {
+    text-align: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.connection-status.connected {
+    background: rgba(72, 187, 120, 0.2);
+    color: #2f855a;
+    border: 1px solid rgba(72, 187, 120, 0.3);
+}
+
+.connection-status.disconnected {
+    background: rgba(245, 101, 101, 0.2);
+    color: #c53030;
+    border: 1px solid rgba(245, 101, 101, 0.3);
+}
+
+.connection-status.connecting {
+    background: rgba(237, 137, 54, 0.2);
+    color: #dd6b20;
+    border: 1px solid rgba(237, 137, 54, 0.3);
+}
+
+.online-player-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #4a5568;
+    margin-top: 4px;
+}
+
+.online-player-indicator.your-turn {
+    color: #48bb78;
+    font-weight: 600;
+}
+
+.online-player-indicator.opponent-turn {
+    color: #ed8936;
+}
+
+/* Responsive adjustments for online controls */
+@media (max-width: 768px) {
+    .online-controls {
+        min-width: 280px;
+        padding: 15px;
+    }
+    
+    .join-room-container {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .join-room-container .room-id-input {
+        width: 100%;
+    }
+}
