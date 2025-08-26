@@ -2,6 +2,10 @@ const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const keepAlive = require('./keep-alive');
+
+// Start keep-alive service for free hosting platforms
+keepAlive();
 
 const server = http.createServer((req, res) => {
     // Serve static files
@@ -246,7 +250,7 @@ wss.on('connection', (ws) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
     console.log(`Chess server running on port ${PORT}`);
     console.log(`Open your browser to http://localhost:${PORT} to play!`);
