@@ -301,7 +301,7 @@ class ChessGame {
     }
 
     handleSquareClick(row, col) {
-        if (this.gameState !== 'playing' || this.isAiThinking) return;
+        if ((this.gameState !== 'playing' && this.gameState !== 'check') || this.isAiThinking) return;
         
         // Check if it's an online game and if it's the player's turn
         if (this.isOnline) {
@@ -1041,7 +1041,7 @@ class ChessGame {
     }
 
     async makeAiMove() {
-        if (this.isAiThinking || this.gameState !== 'playing') return;
+        if (this.isAiThinking || (this.gameState !== 'playing' && this.gameState !== 'check')) return;
         
         this.isAiThinking = true;
         this.showAiThinking(true);
