@@ -359,7 +359,8 @@ class ChessGame {
     }
 
     highlightValidMoves(row, col) {
-        const validMoves = this.getValidMoves(row, col);
+        const piece = this.board[row][col];
+        const validMoves = this.getValidMoves(row, col, piece ? piece.color : this.currentPlayer);
         validMoves.forEach(([moveRow, moveCol]) => {
             const square = document.querySelector(`[data-row="${moveRow}"][data-col="${moveCol}"]`);
             if (square) {
@@ -390,9 +391,9 @@ class ChessGame {
         }
     }
 
-    getValidMoves(row, col) {
+    getValidMoves(row, col, color = this.currentPlayer) {
         const piece = this.board[row][col];
-        if (!piece || piece.color !== this.currentPlayer) return [];
+        if (!piece || piece.color !== color) return [];
 
         const possibleMoves = this.getPossibleMoves(row, col);
         const validMoves = possibleMoves.filter(([moveRow, moveCol]) => {
@@ -554,7 +555,8 @@ class ChessGame {
     }
 
     isValidMove(fromRow, fromCol, toRow, toCol) {
-        const validMoves = this.getValidMoves(fromRow, fromCol);
+        const movingPiece = this.board[fromRow]?.[fromCol];
+        const validMoves = this.getValidMoves(fromRow, fromCol, movingPiece ? movingPiece.color : this.currentPlayer);
         return validMoves.some(([row, col]) => row === toRow && col === toCol);
     }
 
@@ -783,7 +785,7 @@ class ChessGame {
                     const piece = this.board[row][col];
                     if (piece && piece.color === color) {
                         try {
-                            const validMoves = this.getValidMoves(row, col);
+                            const validMoves = this.getValidMoves(row, col, color);
                             moves.push(...validMoves);
                         } catch (error) {
                             console.error(`Error getting valid moves for ${row},${col}:`, error);
@@ -1155,7 +1157,7 @@ class ChessGame {
                     const piece = this.board[row][col];
                     if (piece && piece.color === color) {
                         try {
-                            const validMoves = this.getValidMoves(row, col);
+                            const validMoves = this.getValidMoves(row, col, color);
                             validMoves.forEach(([toRow, toCol]) => {
                                 moves.push({
                                     from: { row, col },

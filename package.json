@@ -11,9 +11,14 @@
     "node": ">=16.0.0"
   },
   "dependencies": {
+    "jsdom": "^29.0.2",
     "ws": "^8.14.2"
   },
-  "keywords": ["chess", "multiplayer", "websocket"],
+  "keywords": [
+    "chess",
+    "multiplayer",
+    "websocket"
+  ],
   "author": "",
   "license": "MIT"
 }
