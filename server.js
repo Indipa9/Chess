@@ -82,6 +82,13 @@ class GameRoom {
                 canStart: this.players.length === 2
             });
 
+            // Send game state to the joining player to sync their board
+            ws.send(JSON.stringify({
+                type: 'sync-game',
+                moveHistory: this.moveHistory,
+                currentPlayer: this.currentPlayer
+            }));
+
             return true;
         }
         return false;

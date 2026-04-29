@@ -119,6 +119,11 @@ class ChessGame {
                 this.isOnline = true;
                 this.isMyTurn = data.color === 'white';
                 this.playerName = data.playerName;
+                if (this.playerColor === 'black' && !this.isFlipped) {
+                    this.flipBoard();
+                } else if (this.playerColor === 'white' && this.isFlipped) {
+                    this.flipBoard();
+                }
                 this.updateRoomStatus(`You are playing as ${data.color}`);
                 this.updatePlayerNames();
                 break;
@@ -161,7 +166,37 @@ class ChessGame {
             case 'room-full':
                 this.updateRoomStatus('Room is full');
                 break;
+                
+            case 'sync-game':
+                this.receiveSyncGame(data);
+                break;
         }
+    }
+
+    receiveSyncGame(data) {
+        this.board = this.initializeBoard();
+        this.currentPlayer = 'white';
+        this.moveHistory = [];
+        this.gameState = 'playing';
+        this.selectedSquare = null;
+
+        // Apply all historical moves
+        if (data.moveHistory && data.moveHistory.length > 0) {
+            for (const move of data.moveHistory) {
+                this.board[move.to.row][move.to.col] = move.piece;
+                this.board[move.from.row][move.from.col] = null;
+                this.moveHistory.push(move);
+                this.currentPlayer = this.getOpponent(this.currentPlayer);
+            }
+            this.isMyTurn = this.currentPlayer === this.playerColor;
+        } else {
+            this.isMyTurn = this.playerColor === 'white';
+        }
+        
+        this.updateGameState();
+        this.renderBoard();
+        this.updateGameInfo();
+        this.updateMoveHistory();
     }
 
     createRoom() {
