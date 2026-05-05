@@ -183,8 +183,13 @@ class ChessGame {
         // Apply all historical moves
         if (data.moveHistory && data.moveHistory.length > 0) {
             for (const move of data.moveHistory) {
-                this.board[move.to.row][move.to.col] = move.piece;
-                this.board[move.from.row][move.from.col] = null;
+                const toRow = parseInt(move.to.row, 10);
+                const toCol = parseInt(move.to.col, 10);
+                const fromRow = parseInt(move.from.row, 10);
+                const fromCol = parseInt(move.from.col, 10);
+
+                this.board[toRow][toCol] = move.piece;
+                this.board[fromRow][fromCol] = null;
                 this.moveHistory.push(move);
                 this.currentPlayer = this.getOpponent(this.currentPlayer);
             }
@@ -638,8 +643,13 @@ class ChessGame {
 
     receiveOpponentMove(moveData) {
         // Apply the opponent's move
-        this.board[moveData.to.row][moveData.to.col] = moveData.piece;
-        this.board[moveData.from.row][moveData.from.col] = null;
+        const toRow = parseInt(moveData.to.row, 10);
+        const toCol = parseInt(moveData.to.col, 10);
+        const fromRow = parseInt(moveData.from.row, 10);
+        const fromCol = parseInt(moveData.from.col, 10);
+
+        this.board[toRow][toCol] = moveData.piece;
+        this.board[fromRow][fromCol] = null;
 
         this.moveHistory.push(moveData);
         this.currentPlayer = this.getOpponent(this.currentPlayer);
@@ -768,6 +778,10 @@ class ChessGame {
         let currentCol = fromCol + colStep;
         
         while (currentRow !== toRow || currentCol !== toCol) {
+            if (currentRow < 0 || currentRow > 7 || currentCol < 0 || currentCol > 7) {
+                console.warn('isPathClear went out of bounds', {fromRow, fromCol, toRow, toCol, currentRow, currentCol});
+                return false; 
+            }
             if (this.board[currentRow][currentCol] !== null) {
                 return false;
             }
